@@ -1,77 +1,45 @@
 # PRODUCT_SPEC.md
 
 ## 1. 개요
-주요 반도체 업체의 **주가**와 **PER(주가수익비율)** 을 매일 수집·비교하여, 상대적으로 **고평가(overvalued)** 또는 **저평가(undervalued)** 된 회사를 찾아주는 웹 앱이다.
+사용자가 스스로 정한 **목표(goal)** 를 만들고 관리하는 웹 앱이다. 로그인한 사용자는 자신의 목표만 생성·수정·삭제·조회할 수 있다.
 
-- 프로젝트 코드명: `semicap-valuation`
+- 프로젝트 코드명: `ssot-goal-lab`
 - 기술 스택: Next.js App Router, TypeScript, Supabase (Auth / Postgres / RLS), Vercel
 - SSOT: 이 저장소의 파일 (대화 내용은 진실의 출처가 아니다)
 
-## 2. 문제 정의
-반도체 업종은 사이클 변동이 크고, 개별 종목의 PER만 봐서는 고평가/저평가를 판단하기 어렵다.
-사용자는 여러 업체의 PER과 주가를 한 화면에서 매일 비교하고, 업종 평균 대비 상대 위치를 빠르게 확인하고 싶어 한다.
+## 2. 목표 사용자
+- 개인 목표를 가볍게 기록·관리하고 싶은 사용자
 
-## 3. 목표 사용자
-- 반도체 종목에 관심 있는 개인 투자자
-- 업종 내 상대 밸류에이션을 빠르게 훑고 싶은 사용자
+## 3. 범위 (In Scope)
+- Supabase Auth 이메일/비밀번호 로그인·회원가입·로그아웃
+- 로그인 사용자의 목표 CRUD (제목, 설명, 상태)
+- 본인 데이터만 접근 (RLS로 강제)
 
-## 4. 핵심 가치 제안
-- 매일 갱신되는 주가·PER 데이터를 한 곳에서 비교
-- 업종 평균/중앙값 대비 **고평가·저평가 점수**(Quality/Valuation Score) 제공 → 자세한 산식은 [QUALITY_SCORE.md](./QUALITY_SCORE.md)
-- 로그인 사용자가 관심 종목을 워치리스트로 저장·관리
+## 4. 비범위 (Out of Scope)
+- 팀 협업/공유, 분석/통계, 이메일 알림 템플릿 (sprint-01 기준)
 
-## 5. 범위 (In Scope)
-- 사전 정의된 반도체 업체 목록(`companies`)에 대한 일별 주가·PER 수집
-- 업종 평균 대비 밸류에이션 점수 계산 및 랭킹
-- 로그인 사용자의 워치리스트 CRUD
-- 일별 스냅샷 히스토리 조회(최근 N일)
-
-## 6. 비범위 (Out of Scope)
-- 실시간(틱 단위) 시세
-- 매매 주문/브로커리지 연동
-- 투자 자문/추천 (본 앱은 정보 제공 목적이며 투자 권유가 아님)
-- 반도체 외 업종
-
-## 7. 데이터 모델 (개념 수준)
-| 테이블 | 설명 | 소유/접근 |
+## 5. 데이터 모델
+| 테이블 | 설명 | 접근 |
 | --- | --- | --- |
-| `companies` | 반도체 업체 마스터 (ticker, name, market) | 전체 읽기, 쓰기는 서비스 롤 |
-| `daily_quotes` | 일별 주가·PER·EPS 스냅샷 | 전체 읽기, 쓰기는 서비스 롤(수집 잡) |
-| `valuation_scores` | 일별 고평가/저평가 점수·랭킹 | 전체 읽기, 쓰기는 서비스 롤 |
-| `watchlist_items` | 사용자별 관심 종목 | 본인 행만 접근 (RLS) |
-| `profiles` | 사용자 프로필 (auth.users 연동) | 본인 행만 접근 (RLS) |
+| `profiles` | auth.users 1:1 프로필 | 본인 행만 (RLS) |
+| `goals` | 사용자별 목표 (title, description, status) | 본인 행만 CRUD (RLS) |
 
-세부 스키마와 RLS 정책은 [SECURITY.md](./SECURITY.md) 및 `supabase/schema.sql` 참조.
+세부 스키마·RLS는 [SECURITY.md](./SECURITY.md), `supabase/schema.sql` 참조.
 
-## 8. 화면 / 라우트 (Next.js App Router)
-- `/` — 랜딩 + 오늘의 밸류에이션 요약(고평가/저평가 Top N)
-- `/dashboard` — 전체 업체 비교 테이블(주가, PER, 점수, 랭킹), 정렬·필터
-- `/companies/[ticker]` — 개별 업체 상세(주가·PER 추이, 점수 히스토리)
-- `/watchlist` — 로그인 사용자의 관심 종목 (인증 필요)
+## 6. 라우트 (Next.js App Router)
+- `/` — 랜딩 (로그인 상태에 따라 CTA 분기)
 - `/login` — Supabase Auth 로그인/회원가입
-- `/api/cron/ingest` — 일별 데이터 수집 트리거(서버 전용, 서비스 롤)
+- `/goals` — 로그인 사용자의 목표 목록 + 추가/수정/삭제 (인증 필요, 미인증 시 `/login` 리다이렉트)
 
-## 9. 주요 기능
-1. **데이터 수집(ingest)**: 매일 외부 시세 소스에서 주가·EPS를 받아 `daily_quotes`에 적재하고 PER을 계산.
-2. **밸류에이션 점수 계산**: 업종 평균/중앙값 대비 상대 PER로 점수·랭킹 산출 → `valuation_scores`.
-3. **비교 대시보드**: 정렬/필터 가능한 비교 테이블, 고평가·저평가 하이라이트.
-4. **워치리스트**: 로그인 사용자가 종목 추가/삭제, 본인 데이터만 접근.
-5. **히스토리**: 종목별 주가·PER·점수 추이 조회.
+## 7. 책임 경계 (코드)
+- UI: `src/app/*`, `src/features/*/components/*`
+- Server actions/queries: `src/features/goals/{actions,queries}.ts`, `src/features/auth/actions.ts`
+- Supabase client: `src/lib/supabase/{client,server,admin,middleware}.ts`
+- 세션 게이트: `src/middleware.ts`
 
-## 10. 사용자 스토리 (요약)
-- 비로그인 사용자도 오늘의 비교 대시보드를 볼 수 있다.
-- 로그인 사용자는 관심 종목을 워치리스트에 저장하고 다음 방문 시 그대로 본다.
-- 사용자는 업종 평균 대비 고평가·저평가 종목을 한눈에 구분할 수 있다.
+## 8. 완료 기준 (sprint-01)
+[docs/sprint-contracts/sprint-01.md](./sprint-contracts/sprint-01.md) 참조. 요지: 로그인 가능, `goals` 테이블 + RLS, 본인 데이터만 접근, `npm run verify` 통과.
 
-## 11. 성공 지표
-- 매일 데이터 수집 잡 성공률 ≥ 99%
-- 대시보드 첫 화면 로드(서버 렌더) p95 < 1.5s
-- 로그인 사용자의 워치리스트 재방문 유지
-
-## 12. 비기능 요구사항
-- 보안: [SECURITY.md](./SECURITY.md)
-- 신뢰성: [RELIABILITY.md](./RELIABILITY.md)
-- 데이터 품질/점수 산식: [QUALITY_SCORE.md](./QUALITY_SCORE.md)
-
-## 13. 면책
-본 앱이 제공하는 점수와 분류는 정보 제공 목적이며, 특정 종목의 매수/매도를 권유하지 않는다.
+## 9. 검증
+- 단위: zod 입력 스키마 (`tests/unit`)
+- e2e: Playwright (`tests/e2e`) — 라우팅/인증 게이트는 오프라인 통과, 전체 CRUD는 실 Supabase 자격증명 필요.
