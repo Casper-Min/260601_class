@@ -19,14 +19,17 @@ test.describe("목표 CRUD (실 Supabase 필요)", () => {
     await expect(page).toHaveURL(/\/goals/);
 
     const title = `e2e 목표 ${Date.now()}`;
-    await page.getByLabel("목표 제목").fill(title);
+    await page.getByLabel("목표 제목", { exact: true }).fill(title);
     await page.getByRole("button", { name: "목표 추가" }).click();
 
-    await expect(page.getByText(title)).toBeVisible();
+    // 추가된 목표는 GoalItem의 제목 input(value)로 렌더된다.
+    const item = page
+      .getByTestId("goal-item")
+      .filter({ has: page.locator(`input[value="${title}"]`) });
+    await expect(item).toHaveCount(1);
 
     // 방금 추가한 목표 삭제
-    const item = page.getByTestId("goal-item").filter({ hasText: title });
     await item.getByRole("button", { name: "목표 삭제" }).click();
-    await expect(page.getByText(title)).toHaveCount(0);
+    await expect(item).toHaveCount(0);
   });
 });

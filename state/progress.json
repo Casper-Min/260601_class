@@ -3,7 +3,7 @@
   "project": "ssot-goal-lab",
   "goal": "사용자가 스스로 정한 목표를 만들고 관리하는 Next.js + Supabase 앱",
   "current_sprint": "sprint-01",
-  "status": "deployed",
+  "status": "live",
   "tasks": [
     { "id": "T1", "title": "제품 스펙 정의", "status": "done" },
     { "id": "T2", "title": "Supabase schema와 RLS 정책 작성", "status": "done" },
@@ -13,19 +13,16 @@
   "verification": {
     "verify_passed": true,
     "verify_command": "npm run verify",
-    "e2e_local": "playwright: 4 passed, 1 skipped",
-    "e2e_live": "playwright against https://260601class.vercel.app: 4 passed, 1 skipped",
+    "e2e_local": "playwright: 5 passed (로그인+CRUD 포함, 실 Supabase)",
+    "e2e_live": "playwright against https://260601class.vercel.app: 5 passed (로그인+CRUD 포함)",
     "node": ">=20.12 (.nvmrc=20)"
   },
   "deployment": {
     "git": "origin/setup/ssot-scaffold-team-eval (pushed)",
-    "vercel": "https://260601class.vercel.app (production, READY)",
-    "vercel_note": "현재 Supabase 환경변수가 placeholder. 로그인/목표 CRUD 실제 동작에는 Vercel env를 실 Supabase 값으로 교체 필요."
+    "vercel": "https://260601class.vercel.app (production, READY, 실 Supabase 연결)",
+    "supabase_project": "hxhieqsvbvjkgtmepbbe",
+    "status_note": "실제 로그인/목표 CRUD 동작 확인됨 (로컬+라이브 e2e)"
   },
-  "follow_ups": [
-    "Vercel 환경변수(NEXT_PUBLIC_SUPABASE_URL/ANON_KEY, SUPABASE_SERVICE_ROLE_KEY)를 실 Supabase 값으로 교체 후 재배포",
-    "supabase/schema.sql 을 실 Supabase 프로젝트에 적용",
-    "실 Supabase 자격증명으로 전체 CRUD e2e (E2E_SUPABASE=1) 실행"
-  ],
+  "security_note": "service_role 키가 대화에 노출되었으므로 운영 시 Supabase에서 키 로테이션 권장. .env.local 은 gitignore로 커밋되지 않음.",
   "last_updated": "2026-06-01"
 }
